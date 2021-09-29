@@ -58,7 +58,7 @@ class RingAPI
 
         $url .= "&q=".$taxNumber;
 
-        $result = $this->getData($url);
+        $result = $this->getData($url,$taxNumber);
 
         if (!$result){
             $result = ['status' => 'error', 'msg' => 'Немає даних.', 'exception' => $this->exception];
@@ -67,12 +67,13 @@ class RingAPI
         return($result);
     }
 
-    private function getData($url)
+    private function getData($url,$taxNumber)
     {
         try {
 
             $result=file_get_contents($url);
             $result=json_decode($result, true);
+            $object = null;
 
             if (array_key_exists('search_results', $result)){
                 $search_results = $result['search_results'];
@@ -81,26 +82,32 @@ class RingAPI
                 if (!array_key_exists('object_list', $search_results)) return false;
                 $object_list = $search_results['object_list'];
 
-                //Get first only
-                if (!array_key_exists('0', $object_list)) return false;
-                $object_list = $object_list['0'];
+                foreach ($object_list as $result){
+                    //If tax number does not match go to next result
+                    if ($result['full_edrpou']!=$taxNumber) continue;
+
+                    $object = $result;
+                    break;
+                }
+
+                if (!isset($object)) return false;
 
                 $data = array();
-                $data['address'] = $object_list['latest_record']['location'];
-                $data['name'] = $object_list['latest_record']['name'];
-                $data['status'] = $object_list['latest_record']['status'];
-                $data['edrpou'] = $object_list['full_edrpou'];
+                $data['address'] = $object['latest_record']['location'];
+                $data['name'] = $object['latest_record']['name'];
+                $data['status'] = $object['latest_record']['status'];
+                $data['edrpou'] = $object['full_edrpou'];
 
-                if (array_key_exists('raw_persons', $object_list)){
-                    foreach ($object_list['raw_persons'] as $row){
+                if (array_key_exists('raw_persons', $object)){
+                    foreach ($object['raw_persons'] as $row){
                         $data['raw_persons'][] = $row;
                     }
                 }
 
-                if (array_key_exists('persons', $object_list)){
-                    $raw_persons = $object_list['persons'];
+                if (array_key_exists('persons', $object)){
+                    $raw_persons = $object['persons'];
 
-                    //Залишити тільки кирилицю //preg_match("/[а-я]/i", $str)
+                    //Leave only Cyrillic  //preg_match("/[а-я]/i", $str)
                     foreach ($raw_persons as $person) {
                         if(!preg_match("/[a-z]/i", $person)){
                             $persons[]=$person;
@@ -114,6 +121,7 @@ class RingAPI
 
                 unset($search_results);
                 unset($object_list);
+                unset($object);
 
                 $result['status'] = 'ok';
                 $result['data'] = $data;
