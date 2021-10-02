@@ -76,13 +76,13 @@ class RingAPI
             $object = null;
 
             if (array_key_exists('search_results', $result)){
-                $search_results = $result['search_results'];
+                $searchResults = $result['search_results'];
                 unset($result);
 
-                if (!array_key_exists('object_list', $search_results)) return false;
-                $object_list = $search_results['object_list'];
+                if (!array_key_exists('object_list', $searchResults)) return false;
+                $objectList = $searchResults['object_list'];
 
-                foreach ($object_list as $result){
+                foreach ($objectList as $result){
                     //If tax number does not match go to next result
                     if ($result['full_edrpou']!=$taxNumber) continue;
 
@@ -105,22 +105,22 @@ class RingAPI
                 }
 
                 if (array_key_exists('persons', $object)){
-                    $raw_persons = $object['persons'];
+                    $rawPersons = $object['persons'];
 
                     //Leave only Cyrillic  //preg_match("/[а-я]/i", $str)
-                    foreach ($raw_persons as $person) {
+                    foreach ($rawPersons as $person) {
                         if(!preg_match("/[a-z]/i", $person)){
                             $persons[]=$person;
                         }
                     }
-                    unset($raw_persons);
+                    unset($rawPersons);
 
                     $data['persons'] = $persons;
                     unset($persons);
                 }
 
-                unset($search_results);
-                unset($object_list);
+                unset($searchResults);
+                unset($objectList);
                 unset($object);
 
                 $result['status'] = 'ok';
